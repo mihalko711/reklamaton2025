@@ -33,7 +33,7 @@ async def start_command(message: types.Message, state: FSMContext, db: sqlite3.C
             keyboard=[
                 [KeyboardButton(text="Оценить анкету")],
                 [KeyboardButton(text="Оценить фотографию")],
-                [KeyboardButton(text="Общий диалог")]
+                [KeyboardButton(text="Диалог")]
             ],
             resize_keyboard=True,
             one_time_keyboard=True
@@ -67,10 +67,10 @@ async def rate_profile(message: types.Message, state: FSMContext):
 @router.message(F.text == "Оценить фотографию", StateFilter(BotStates.choosing_menu_state))
 async def rate_photo(message: types.Message, state: FSMContext):
     await state.set_state(BotStates.photo_marking_state)
-    await message.answer("Пожалуйста, отправьте фотографию с подписью.")
+    await message.answer("Пожалуйста, отправьте фотографию (можно с подписью)")
 
 
-@router.message(F.text == "Общий диалог", StateFilter(BotStates.choosing_menu_state))
+@router.message(F.text == "Диалог", StateFilter(BotStates.choosing_menu_state))
 async def start_conversation(message: types.Message, state: FSMContext):
     await state.set_state(BotStates.conversation_state)
     await state.update_data(history=[])
@@ -112,7 +112,7 @@ async def handle_conversation_message(message: types.Message, state: FSMContext)
             reply = f"Ошибка при запросе к LLM: {e}"
         history.append({"role": "assistant", "content": reply})
         if len(history) > 20:
-            history = history[0] + history[6:]
+            history = [history[0]] + history[6:]
         await state.update_data(history=history)
         await message.answer(reply)
     else:
@@ -198,6 +198,7 @@ async def handle_text(message: types.Message, state: FSMContext):
         resp.raise_for_status()
         result = resp.json()
         reply = result["choices"][0]["message"]["content"]
+        reply = reply.replace("анкёй", "анкетой")
     except Exception as e:
         reply = f"Ошибка при запросе к LLM: {e}"
     if reply != ("Привет! Я помогу сделать твою анкету для знакомств лучше — пришли её сюда, и я дам советы по "
