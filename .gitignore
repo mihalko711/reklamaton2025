@@ -2,4 +2,4 @@
 .env
 .idea/
 bot/__pycache__/
-bot/users.db    
+bot/users.db
