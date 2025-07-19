@@ -79,7 +79,7 @@ async def handle_conversation_message(message: types.Message, state: FSMContext)
             "messages": [
                             {"role": "system", "content": "Ты — умный помощник, отвечай на запросы на русском языке."}
                         ] + history,
-            "temperature": 0.6
+            "temperature": 0.4
         }
         try:
             resp = requests.post(LM_API_URL, json=payload)
@@ -89,6 +89,8 @@ async def handle_conversation_message(message: types.Message, state: FSMContext)
         except Exception as e:
             reply = f"Ошибка при запросе к LLM: {e}"
         history.append({"role": "assistant", "content": reply})
+        if len(history) > 20:
+            history = history[0] + history[6:]
         await state.update_data(history=history)
         await message.answer(reply)
     else:
@@ -124,7 +126,7 @@ async def handle_photo(message: types.Message, state: FSMContext):
                 ]
             }
         ],
-        "temperature": 0.6
+        "temperature": 0.4
     }
     try:
         resp = requests.post(LM_API_URL, json=payload)
