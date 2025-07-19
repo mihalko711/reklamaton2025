@@ -1,3 +1,5 @@
 .ipynb_checkpoints/
 .env
-.idea
+.idea/
+bot/__pycache__/
+bot/users.db    

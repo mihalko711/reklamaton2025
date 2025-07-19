@@ -1,4 +1,6 @@
 import io
+import sqlite3
+
 import requests
 import base64
 import os
@@ -9,7 +11,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters.state import StateFilter
 from aiogram import Router, types, F
 
-from states import BotStates
+from states import BotStates, UserRegistrationStates
 from prompts import questionnaire_systemp_prompt
 
 LM_API_URL = os.getenv("LM_API_URL")
@@ -20,19 +22,28 @@ router = Router()
 
 
 @router.message(StateFilter(None))
-async def start_command(message: types.Message, state: FSMContext):
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="Оценить анкету")],
-            [KeyboardButton(text="Оценить фотографию")],
-            [KeyboardButton(text="Общий диалог")]
-        ],
-        resize_keyboard=True,
-        one_time_keyboard=True
-    )
-    await state.set_state(BotStates.choosing_menu_state)
-    await message.answer("Привет! Я бот для оценки анкет, фотографий и ответов. Выберите, что вы хотите оценить:",
-                         reply_markup=keyboard)
+async def start_command(message: types.Message, state: FSMContext, db: sqlite3.Connection):
+    user_id = message.from_user.id
+    cursor = db.cursor()
+    cursor.execute("SELECT id FROM users WHERE id = ?", (user_id,))
+    result = cursor.fetchone()
+
+    if result:
+        keyboard = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="Оценить анкету")],
+                [KeyboardButton(text="Оценить фотографию")],
+                [KeyboardButton(text="Общий диалог")]
+            ],
+            resize_keyboard=True,
+            one_time_keyboard=True
+        )
+        await state.set_state(BotStates.choosing_menu_state)
+        await message.answer("Привет! Я бот для оценки анкет, фотографий и ответов. Выберите, что вы хотите оценить:",
+                             reply_markup=keyboard)
+    else:
+        await message.answer("Для начала просим тебя немного рассказать о себе. Напиши своё имя!")
+        await state.set_state(UserRegistrationStates.name_state)
 
 
 @router.message(F.text == "Оценить анкету", StateFilter(BotStates.choosing_menu_state))

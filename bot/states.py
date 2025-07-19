@@ -9,7 +9,7 @@ class BotStates(StatesGroup):
 
 
 class UserRegistrationStates(StatesGroup):
-    name = State()
+    name_state = State()
     age_state = State()
     sex_state = State()
     zodiac_sign_state = State()

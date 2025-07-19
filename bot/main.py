@@ -4,6 +4,8 @@ import sqlite3
 from aiogram import Bot, Dispatcher, BaseMiddleware
 from dotenv import load_dotenv
 
+from bot.user_bio_registration import user_route
+
 load_dotenv()
 import os
 
@@ -23,12 +25,12 @@ def init_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
+            name TEXT,
             age INTEGER,
             gender TEXT,
             zodiac_sign TEXT,
             height REAL,
             weight REAL,
-            education BOOLEAN,
             has_children BOOLEAN,
             attitude_alcohol INTEGER,
             attitude_tobacco INTEGER
@@ -55,6 +57,7 @@ class DatabaseMiddleware(BaseMiddleware):
 
 dp.message.middleware(DatabaseMiddleware())
 dp.include_router(router)
+dp.include_router(user_route)
 
 
 async def main():
