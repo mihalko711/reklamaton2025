@@ -4,7 +4,7 @@ import sqlite3
 from aiogram import Bot, Dispatcher, BaseMiddleware
 from dotenv import load_dotenv
 
-from bot.user_bio_registration import user_route
+from user_bio_registration import user_route
 
 load_dotenv()
 import os

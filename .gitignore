@@ -3,3 +3,5 @@
 .idea/
 bot/__pycache__/
 bot/users.db
+.venv/
+users.db

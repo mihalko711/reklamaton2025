@@ -14,6 +14,10 @@ from aiogram import Router, types, F
 from states import BotStates, UserRegistrationStates
 from prompts import questionnaire_systemp_prompt, photo_systemp_prompt, conversation_systemp_prompt
 
+MODEL_NAME = os.getenv("MODEL_NAME")
+if not MODEL_NAME:
+    MODEL_NAME = "google/gemma-3-4b"
+
 LM_API_URL = os.getenv("LM_API_URL")
 if not LM_API_URL:
     raise ValueError("LM_API_URL не найден в .env")
@@ -97,17 +101,21 @@ async def handle_conversation_message(message: types.Message, state: FSMContext)
         history = data.get("history", [])
         history.append({"role": "user", "content": message.text})
         payload = {
-            "model": "google/gemma-3-4b",
+            "model": MODEL_NAME,
             "messages": [
                             {"role": "system", "content": conversation_systemp_prompt}
                         ] + history,
-            "temperature": 0.4
+            "temperature": 0.4,
+            "stream": False
         }
         try:
             resp = requests.post(LM_API_URL, json=payload)
             resp.raise_for_status()
             result = resp.json()
-            reply = result["choices"][0]["message"]["content"]
+            if MODEL_NAME == "google/gemma-3-4b":
+                reply = result["choices"][0]["message"]["content"]
+            else:
+                reply = result["message"]["content"]
         except Exception as e:
             reply = f"Ошибка при запросе к LLM: {e}"
         history.append({"role": "assistant", "content": reply})
@@ -129,7 +137,7 @@ async def handle_photo(message: types.Message, state: FSMContext):
     bio.seek(0)
     image_base64 = base64.b64encode(bio.read()).decode("utf-8")
     payload = payload = {
-        "model": "google/gemma-3-4b",
+        "model": MODEL_NAME,
         "messages": [
             {
                 "role": "system",
@@ -143,13 +151,17 @@ async def handle_photo(message: types.Message, state: FSMContext):
                 ]
             }
         ],
-        "temperature": 0.4
+        "temperature": 0.4,
+        "stream": False
     }
     try:
         resp = requests.post(LM_API_URL, json=payload)
         resp.raise_for_status()
         result = resp.json()
-        reply = result["choices"][0]["message"]["content"]
+        if MODEL_NAME == "google/gemma-3-4b":
+            reply = result["choices"][0]["message"]["content"]
+        else:
+            reply = result["message"]["content"]
     except Exception as e:
         reply = f"Ошибка при запросе к LLM с фото: {e}\nОтвет сервера: {resp.text if 'resp' in locals() else 'Нет ответа сервера'}"
     await state.clear()
@@ -186,18 +198,22 @@ async def handle_text(message: types.Message, state: FSMContext):
     """
     user_input = message.text
     payload = {
-        "model": "google/gemma-3-4b",
+        "model": MODEL_NAME,
         "messages": [
             {"role": "system", "content": questionnaire_systemp_prompt + "\n" + additional_info},
             {"role": "user", "content": user_input}
         ],
-        "temperature": 0.4
+        "temperature": 0.4,
+        "stream": False
     }
     try:
         resp = requests.post(LM_API_URL, json=payload)
         resp.raise_for_status()
         result = resp.json()
-        reply = result["choices"][0]["message"]["content"]
+        if MODEL_NAME == "google/gemma-3-4b":
+            reply = result["choices"][0]["message"]["content"]
+        else:
+            reply = result["message"]["content"]
     except Exception as e:
         reply = f"Ошибка при запросе к LLM: {e}"
     if reply != ("Привет! Я помогу сделать твою анкету для знакомств лучше — пришли её сюда, и я дам советы по "
