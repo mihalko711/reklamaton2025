@@ -10,6 +10,7 @@ from aiogram.filters.state import StateFilter
 from aiogram import Router, types, F
 
 from states import BotStates
+from prompts import questionnaire_systemp_prompt
 
 LM_API_URL = os.getenv("LM_API_URL")
 if not LM_API_URL:
@@ -24,7 +25,7 @@ async def start_command(message: types.Message, state: FSMContext):
         keyboard=[
             [KeyboardButton(text="Оценить анкету")],
             [KeyboardButton(text="Оценить фотографию")],
-            [KeyboardButton(text="Оценить ответ")]
+            [KeyboardButton(text="Общий диалог")]
         ],
         resize_keyboard=True,
         one_time_keyboard=True
@@ -46,7 +47,7 @@ async def rate_photo(message: types.Message, state: FSMContext):
     await message.answer("Пожалуйста, отправьте фотографию с подписью.")
 
 
-@router.message(F.text == "Оценить ответ", StateFilter(BotStates.choosing_menu_state))
+@router.message(F.text == "Общий диалог", StateFilter(BotStates.choosing_menu_state))
 async def start_conversation(message: types.Message, state: FSMContext):
     await state.set_state(BotStates.conversation_state)
     await state.update_data(history=[])
@@ -56,7 +57,7 @@ async def start_conversation(message: types.Message, state: FSMContext):
         one_time_keyboard=True
     )
     await message.answer(
-        "Вы вошли в режим оценки ответов. Отправляйте сообщения, и я буду отвечать с учётом контекста.",
+        "Вы вошли в интерактивный режим диалога, можете задавать любые вопросы по дейтингу и я постараюсь Вам помочь!",
         reply_markup=keyboard)
 
 
@@ -136,16 +137,16 @@ async def handle_photo(message: types.Message, state: FSMContext):
     await message.answer(reply)
 
 
-@router.message(F.text)
+@router.message(F.text, BotStates.questionnaire_marking_state)
 async def handle_text(message: types.Message, state: FSMContext):
     user_input = message.text
     payload = {
         "model": "google/gemma-3-4b",
         "messages": [
-            {"role": "system", "content": "Ты — умный помощник, отвечай на запросы на русском языке."},
+            {"role": "system", "content": questionnaire_systemp_prompt},
             {"role": "user", "content": user_input}
         ],
-        "temperature": 0.6
+        "temperature": 0.4
     }
     try:
         resp = requests.post(LM_API_URL, json=payload)
@@ -154,5 +155,7 @@ async def handle_text(message: types.Message, state: FSMContext):
         reply = result["choices"][0]["message"]["content"]
     except Exception as e:
         reply = f"Ошибка при запросе к LLM: {e}"
-    await state.clear()
+    if reply != ("Привет! Я помогу сделать твою анкету для знакомств лучше — пришли её сюда, и я дам советы по "
+                 "улучшению!"):
+        await state.clear()
     await message.answer(reply)
